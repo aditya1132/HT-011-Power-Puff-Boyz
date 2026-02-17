@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0ea5e9" />
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AI-Powered Mental Health Companion - A supportive, privacy-first web application for emotional well-being, mood tracking, and personalized coping tools." />
+    <meta name="keywords" content="mental health, mood tracking, coping tools, emotional support, AI companion, wellness, mindfulness" />
+    <meta name="author" content="AI Mental Health Companion Team" />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="AI Mental Health Companion" />
+    <meta property="og:description" content="A supportive space for your emotional well-being journey with AI-powered insights and personalized coping tools." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI Mental Health Companion" />
+    <meta name="twitter:description" content="A supportive space for your emotional well-being journey." />
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Crisis Resources (Hidden but available for screen readers) -->
+    <div id="crisis-resources" style="position: absolute; left: -9999px; width: 1px; height: 1px;">
+      Crisis Resources: National Suicide Prevention Lifeline 988, Crisis Text Line: Text HOME to 741741
+    </div>
+
+    <title>AI Mental Health Companion - Your Supportive Wellness Journey</title>
+
+    <!-- Inline Critical CSS for Performance -->
+    <style>
+      /* Critical CSS for initial render */
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #fafbfc;
+        color: #1a202c;
+      }
+
+      /* Loading Screen Styles */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #f0f9ff, #ffffff, #f0fdf4);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        background: #0ea5e9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+        animation: pulse 2s infinite;
+      }
+
+      .loading-heart {
+        color: white;
+        font-size: 36px;
+      }
+
+      .loading-text {
+        color: #1a202c;
+        font-size: 18px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .loading-subtitle {
+        color: #6b7280;
+        font-size: 14px;
+        text-align: center;
+        max-width: 300px;
+      }
+
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #e5e7eb;
+        border-top: 3px solid #0ea5e9;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 24px;
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Hide loading screen once app loads */
+      .app-loaded .loading-screen {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease-out;
+      }
+
+      /* Accessibility improvements */
+      @media (prefers-reduced-motion: reduce) {
+        .loading-logo {
+          animation: none;
+        }
+        .loading-spinner {
+          animation: none;
+          border-top-color: #0ea5e9;
+        }
+      }
+
+      /* High contrast mode */
+      @media (prefers-contrast: high) {
+        .loading-screen {
+          background: #ffffff;
+        }
+        .loading-text {
+          color: #000000;
+        }
+        .loading-subtitle {
+          color: #333333;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- No Script Message -->
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>This application requires JavaScript to run. Please enable JavaScript in your browser and refresh the page.</p>
+        <p style="margin-top: 30px; color: #666; font-size: 14px;">
+          If you're experiencing a mental health crisis, please contact:
+          <br>
+          <strong>National Suicide Prevention Lifeline: 988</strong>
+          <br>
+          <strong>Crisis Text Line: Text HOME to 741741</strong>
+        </p>
+      </div>
+    </noscript>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+      <div class="loading-logo">
+        <div class="loading-heart">♥</div>
+      </div>
+      <div class="loading-text">AI Mental Health Companion</div>
+      <div class="loading-subtitle">
+        A safe, supportive space for your emotional well-being journey
+      </div>
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Root Element for React -->
+    <div id="root"></div>
+
+    <!-- Crisis Resources Banner (Initially Hidden) -->
+    <div id="crisis-banner" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #fef2f2; border-bottom: 2px solid #f87171; padding: 12px; text-align: center; z-index: 10000;">
+      <strong style="color: #dc2626;">Crisis Support:</strong>
+      <span style="color: #7f1d1d; margin: 0 16px;">National Suicide Prevention Lifeline: <strong>988</strong></span>
+      <span style="color: #7f1d1d;">Crisis Text Line: <strong>Text HOME to 741741</strong></span>
+    </div>
+
+    <!-- App Initialization Script -->
+    <script>
+      // Hide loading screen once React app is ready
+      window.addEventListener('DOMContentLoaded', function() {
+        // Set a timeout to hide loading screen after React loads
+        setTimeout(function() {
+          const loadingScreen = document.getElementById('loading-screen');
+          const body = document.body;
+
+          if (loadingScreen && body) {
+            body.classList.add('app-loaded');
+            // Remove loading screen from DOM after transition
+            setTimeout(function() {
+              if (loadingScreen.parentNode) {
+                loadingScreen.parentNode.removeChild(loadingScreen);
+              }
+            }, 500);
+          }
+        }, 1500); // Minimum loading time for better UX
+      });
+
+      // Global error handler
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        // You could send this to an error reporting service
+      });
+
+      // Unhandled promise rejection handler
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        event.preventDefault();
+      });
+
+      // Crisis detection helper function (available globally)
+      window.showCrisisResources = function() {
+        const banner = document.getElementById('crisis-banner');
+        if (banner) {
+          banner.style.display = 'block';
+          // Auto-hide after 30 seconds unless user interacts
+          setTimeout(function() {
+            if (banner && banner.style.display !== 'none') {
+              banner.style.display = 'none';
+            }
+          }, 30000);
+        }
+      };
+
+      // Service Worker Registration (Optional - for PWA features)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          // Uncomment to enable service worker
+          // navigator.serviceWorker.register('/sw.js')
+          //   .then(function(registration) {
+          //     console.log('SW registered: ', registration);
+          //   })
+          //   .catch(function(registrationError) {
+          //     console.log('SW registration failed: ', registrationError);
+          //   });
+        });
+      }
+    </script>
+  </body>
+</html>
