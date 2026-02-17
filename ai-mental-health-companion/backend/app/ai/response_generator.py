@@ -3,10 +3,16 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass
+import asyncio
+import os
 
 from app.ai.emotion_detection import EmotionResult
 from app.core.config import get_settings
 from app.core.exceptions import AIServiceError
+
+# OpenAI integration
+import openai
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -101,209 +107,164 @@ class ResponseTemplates:
         ]
     }
 
-    # Supportive continuation phrases
+    # Support phrases
     SUPPORT_PHRASES = {
         "stressed": [
-            "You're stronger than you know, even when stress feels overwhelming.",
-            "Remember, it's okay to take things one step at a time.",
-            "You don't have to handle everything perfectly - just doing your best is enough.",
-            "Stress is temporary, even when it doesn't feel like it.",
-            "You've handled difficult situations before, and you can get through this too."
+            "Remember that it's okay to take things one step at a time.",
+            "You don't have to handle everything at once.",
+            "Taking breaks isn't giving up - it's taking care of yourself.",
+            "You're stronger than you know, even when it doesn't feel like it.",
+            "It's important to be gentle with yourself during stressful times."
         ],
         "anxious": [
-            "You're not alone in feeling this way - anxiety affects many people.",
-            "Remember that anxious thoughts are just thoughts, not facts.",
-            "You have the strength to get through this anxious moment.",
-            "Anxiety is uncomfortable, but it won't last forever.",
-            "Taking things moment by moment can help when anxiety feels overwhelming."
+            "Try to focus on what you can control right now.",
+            "Remember that most of our worries never actually happen.",
+            "You've gotten through difficult times before, and you can do it again.",
+            "Breathing deeply can help calm your nervous system.",
+            "It's okay to take things slowly when you're feeling anxious."
         ],
         "sad": [
-            "It's okay to sit with these feelings for a while - they're part of healing.",
-            "Even in sadness, you're showing strength by reaching out.",
-            "This difficult time will pass, even though it's hard to see right now.",
-            "Your feelings matter, and so do you.",
-            "Healing isn't linear - be patient and gentle with yourself."
+            "Your feelings are temporary, even though they feel overwhelming right now.",
+            "It's okay to sit with these feelings for a while.",
+            "Healing isn't linear, and that's perfectly normal.",
+            "You're not alone in feeling this way.",
+            "Be patient with yourself as you work through this."
         ],
         "overwhelmed": [
-            "Remember, you don't have to solve everything at once.",
-            "Breaking things down into smaller steps can make them more manageable.",
-            "It's okay to ask for help when you're feeling overwhelmed.",
-            "You're doing the best you can with what you have right now.",
-            "Taking a step back and breathing can help clear your perspective."
+            "Try breaking things down into smaller, manageable pieces.",
+            "You don't have to figure everything out right now.",
+            "It's okay to ask for help when you need it.",
+            "Focus on what's most important and let the rest go for now.",
+            "Taking care of yourself isn't selfish - it's necessary."
         ],
         "angry": [
-            "Your anger is valid, and it's important to process these feelings safely.",
-            "Sometimes anger is trying to tell us something important about our boundaries.",
-            "It's okay to feel angry - the key is finding healthy ways to express it.",
-            "Your feelings are legitimate, even if the situation is complicated.",
-            "Taking time to cool down can help you think more clearly."
+            "Your anger is information about what matters to you.",
+            "It's okay to feel angry, but try to express it in healthy ways.",
+            "Take some time to cool down before making any big decisions.",
+            "Consider what boundaries might need to be set.",
+            "Channel this energy into positive action when you're ready."
         ],
         "excited": [
-            "Your excitement is wonderful to witness!",
-            "It's great to see you feeling so positive about something.",
-            "Enjoy this feeling - you deserve to feel excited and happy.",
-            "Your enthusiasm is inspiring and contagious.",
-            "These positive moments are so important to celebrate."
+            "It's wonderful to see you feeling so positive!",
+            "Enjoy this moment of joy and celebration.",
+            "Your enthusiasm is inspiring and uplifting.",
+            "Make sure to savor these good feelings.",
+            "Share your excitement with people who care about you."
         ],
         "positive": [
-            "I'm so happy to hear you're feeling good.",
-            "These positive feelings are worth celebrating and holding onto.",
-            "It's wonderful when life feels good and balanced.",
-            "You deserve to feel this way - soak it in!",
-            "Positive moments like these can carry us through tougher times."
+            "It's great that you're in such a good headspace.",
+            "Keep doing whatever is working for you right now.",
+            "Your positive outlook can be a source of strength.",
+            "Enjoy this peaceful moment in your life.",
+            "You deserve to feel happy and content."
         ],
         "neutral": [
+            "It's perfectly fine to feel steady and calm.",
             "Sometimes neutral is exactly where we need to be.",
-            "There's peace in feeling balanced and steady.",
-            "Neutral feelings can be a sign of stability and grounding.",
-            "It's okay to just be where you are right now.",
-            "Not every day needs to be intense - calm is valuable too."
-        ],
-        "confused": [
-            "Confusion often precedes clarity - you're in a process of figuring things out.",
-            "It's okay to sit with uncertainty while you process your thoughts.",
-            "Sometimes the best thing to do is give yourself time to think.",
-            "Your confusion shows that you're thoughtfully considering your situation.",
-            "Not having all the answers right now is perfectly human."
-        ],
-        "grateful": [
-            "Gratitude has such a positive impact on our overall wellbeing.",
-            "It's wonderful that you can see the good even during challenging times.",
-            "Your appreciation for life's moments is truly special.",
-            "Gratitude can be a powerful tool for maintaining perspective.",
-            "Thank you for sharing your positive outlook - it's uplifting."
+            "Take this time to check in with yourself.",
+            "Stability can be its own form of wellness.",
+            "Use this balanced time to practice self-care."
         ]
     }
 
-    # Coping tool suggestions by emotion
+    # Coping suggestions
     COPING_SUGGESTIONS = {
         "stressed": [
-            "Try the 4-7-8 breathing technique: breathe in for 4, hold for 7, exhale for 8.",
-            "Take a 5-minute walk, even if it's just around your room or outside.",
-            "Write down your top 3 priorities and focus on just one at a time.",
-            "Practice progressive muscle relaxation starting from your toes up to your head.",
-            "Listen to calming music or nature sounds for a few minutes."
+            "Take 5 deep breaths, focusing on making your exhale longer than your inhale",
+            "Try a 10-minute walk outside to clear your head",
+            "Write down your top 3 priorities for today and focus only on those",
+            "Practice progressive muscle relaxation starting from your toes",
+            "Listen to calming music or nature sounds for a few minutes"
         ],
         "anxious": [
-            "Use the 5-4-3-2-1 grounding technique: name 5 things you see, 4 you hear, 3 you touch, 2 you smell, 1 you taste.",
-            "Practice box breathing: breathe in for 4, hold for 4, out for 4, hold for 4.",
-            "Try a brief mindfulness meditation focusing on your breath.",
-            "Remind yourself: 'This feeling will pass, I am safe right now.'",
-            "Engage in gentle movement like stretching or walking."
+            "Try the 5-4-3-2-1 grounding technique: name 5 things you see, 4 you hear, 3 you feel, 2 you smell, 1 you taste",
+            "Practice box breathing: inhale for 4, hold for 4, exhale for 4, hold for 4",
+            "Challenge anxious thoughts by asking 'Is this thought helpful? Is it realistic?'",
+            "Use a worry journal to write down your concerns and potential solutions",
+            "Try gentle stretching or yoga to release physical tension"
         ],
         "sad": [
-            "Write in a journal about what you're feeling - let it all out on paper.",
-            "Reach out to a trusted friend or family member for connection.",
-            "Do one small thing that usually brings you comfort, like making tea or listening to favorite music.",
-            "Practice self-compassion - speak to yourself like you would a good friend.",
-            "Consider watching something uplifting or looking at photos that make you smile."
+            "Allow yourself to feel the sadness without judgment",
+            "Reach out to a trusted friend or family member",
+            "Do one small thing that usually brings you comfort",
+            "Spend time in nature, even if it's just looking out a window",
+            "Practice self-compassion - treat yourself like you would a good friend"
         ],
         "overwhelmed": [
-            "Make a list of everything on your mind, then identify what's most urgent.",
-            "Use the 'two-minute rule': if something takes less than two minutes, do it now.",
-            "Break larger tasks into smaller, more manageable steps.",
-            "Take 10 deep breaths and focus only on your breathing.",
-            "Ask yourself: 'What's one thing I can let go of or delegate?'"
+            "Make a list and prioritize just the top 3 most important tasks",
+            "Break large tasks into smaller, more manageable steps",
+            "Take a 15-minute break to do something you enjoy",
+            "Delegate or ask for help with one thing on your list",
+            "Focus on completing just one thing at a time"
         ],
         "angry": [
-            "Take 10 deep breaths before responding to whatever triggered your anger.",
-            "Try physical exercise like jumping jacks or a quick walk to release tension.",
-            "Write down your feelings without censoring yourself - then decide if you want to keep it.",
-            "Count to 10 (or 100) before saying anything you might regret.",
-            "Consider what boundary might need to be set or what you need to communicate."
-        ],
-        "excited": [
-            "Channel your excitement into planning your next steps toward your goal.",
-            "Share your excitement with someone who will celebrate with you.",
-            "Write down what's making you excited so you can remember this feeling later.",
-            "Use this positive energy to tackle something you've been putting off.",
-            "Take a moment to really savor and appreciate this wonderful feeling."
-        ],
-        "positive": [
-            "Take a moment to practice gratitude for what's going well.",
-            "Consider how you can maintain this positive momentum.",
-            "Share your good feelings with someone you care about.",
-            "Use this positive energy to do something kind for yourself or others.",
-            "Write down what's contributing to your positive mood."
+            "Take a timeout and count to 10 (or 100) before responding",
+            "Try physical exercise to release the energy constructively",
+            "Write about your feelings without censoring yourself",
+            "Practice deep breathing to calm your nervous system",
+            "Consider the situation from different perspectives"
         ],
         "neutral": [
-            "Check in with yourself: are there any needs that aren't being met?",
-            "Consider doing a small activity that usually brings you joy.",
-            "Practice mindfulness by noticing your surroundings without judgment.",
-            "Take this calm moment to do some gentle self-reflection.",
-            "Use this stable feeling to plan something you're looking forward to."
-        ],
-        "confused": [
-            "Write down your thoughts to help organize and clarify them.",
-            "Talk through your confusion with someone you trust.",
-            "Make a pros and cons list if you're trying to make a decision.",
-            "Take some time away from the confusing situation to get perspective.",
-            "Remember that it's okay not to have all the answers right now."
-        ],
-        "grateful": [
-            "Write down three specific things you're grateful for today.",
-            "Consider expressing your gratitude to someone who has helped you.",
-            "Use this grateful feeling to do something kind for someone else.",
-            "Take a moment to really appreciate and savor what you're thankful for.",
-            "Reflect on how gratitude affects your overall mood and perspective."
+            "Use this stable time to practice mindfulness or meditation",
+            "Reflect on what you're grateful for today",
+            "Set intentions for how you want to spend your energy",
+            "Check in with your physical needs - rest, nutrition, movement",
+            "Connect with someone you care about"
         ]
     }
 
-    # Crisis intervention messages
+    # Crisis intervention responses
     CRISIS_RESPONSES = [
-        "I'm really concerned about what you've shared. Your life has value, and there are people who want to help you through this difficult time.",
-        "It sounds like you're going through something really difficult right now. Please know that you don't have to face this alone.",
-        "I can hear that you're in a lot of pain. These feelings are temporary, even when they don't feel like it. Please reach out for support.",
-        "What you're feeling right now is intense and overwhelming, but there are people trained to help you through this.",
-        "I'm worried about you based on what you've shared. Your feelings are valid, and there are resources available to help you right now."
+        "I'm really concerned about you right now. Your life has value and meaning, and I want to help you get through this difficult time.",
+        "I can hear that you're in tremendous pain right now. Please know that you don't have to face this alone - there are people who want to help.",
+        "Thank you for sharing something so difficult with me. Right now, the most important thing is getting you connected with someone who can provide immediate support.",
+        "I'm worried about your safety right now. These feelings can be overwhelming, but they are temporary. Please reach out for help immediately."
     ]
 
     # Professional help encouragement
     PROFESSIONAL_HELP_ENCOURAGEMENT = {
-        "high_distress": [
-            "While I'm here to support you, it might be really helpful to talk to a counselor or therapist who can provide more personalized guidance.",
-            "Consider reaching out to a mental health professional who can work with you on strategies tailored to your specific situation.",
-            "A trained counselor might be able to offer additional tools and perspectives that could be really beneficial for you.",
-            "You deserve professional support that can provide more comprehensive help than I can offer."
-        ],
-        "persistent_issues": [
-            "If you've been feeling this way for a while, talking to a professional could provide valuable insights and coping strategies.",
-            "Sometimes it helps to have a neutral professional perspective when we're working through ongoing challenges.",
-            "A therapist can offer personalized strategies and support that might be really helpful for your specific situation."
-        ],
         "general": [
-            "Remember that seeking professional help is a sign of strength, not weakness.",
-            "Mental health professionals are trained to help with exactly what you're experiencing.",
-            "There's no shame in getting additional support from someone who specializes in mental health."
+            "Consider reaching out to a mental health professional who can provide personalized support.",
+            "A therapist or counselor can offer strategies specifically tailored to your situation.",
+            "Professional help can make a real difference in how you're feeling.",
+            "There's no shame in seeking professional support - it's a sign of strength and self-care."
+        ],
+        "high_distress": [
+            "Given how much distress you're experiencing, I'd strongly encourage you to speak with a mental health professional.",
+            "When feelings are this intense, professional support can be incredibly helpful.",
+            "A therapist can provide you with additional tools and strategies to manage these difficult emotions.",
+            "You deserve professional support to help you work through this challenging time."
         ]
     }
 
-    # Resource suggestions
+    # Resources
     RESOURCES = {
         "crisis": [
-            {"name": "National Suicide Prevention Lifeline", "contact": "988", "description": "24/7 crisis support"},
-            {"name": "Crisis Text Line", "contact": "Text HOME to 741741", "description": "24/7 crisis support via text"},
-            {"name": "SAMHSA National Helpline", "contact": "1-800-662-4357", "description": "Treatment referral service"}
+            {"name": "National Suicide Prevention Lifeline", "contact": "988", "type": "phone"},
+            {"name": "Crisis Text Line", "contact": "Text HOME to 741741", "type": "text"},
+            {"name": "Emergency Services", "contact": "911", "type": "phone"},
+            {"name": "International Association for Suicide Prevention", "contact": "https://www.iasp.info/resources/Crisis_Centres/", "type": "website"}
         ],
         "anxiety": [
-            {"name": "Anxiety and Depression Association of America", "contact": "adaa.org", "description": "Resources and support for anxiety"},
-            {"name": "Calm App", "contact": "calm.com", "description": "Meditation and relaxation exercises"},
-            {"name": "Headspace", "contact": "headspace.com", "description": "Mindfulness and meditation"}
+            {"name": "Anxiety and Depression Association of America", "contact": "https://adaa.org", "type": "website"},
+            {"name": "Psychology Today Therapist Finder", "contact": "https://www.psychologytoday.com", "type": "website"},
+            {"name": "Calm App", "contact": "Meditation and mindfulness app", "type": "app"},
+            {"name": "Headspace", "contact": "Guided meditation app", "type": "app"}
         ],
         "depression": [
-            {"name": "National Alliance on Mental Illness", "contact": "nami.org", "description": "Mental health resources and support"},
-            {"name": "Depression and Bipolar Support Alliance", "contact": "dbsalliance.org", "description": "Peer support and resources"},
-            {"name": "Mental Health America", "contact": "mhanational.org", "description": "Mental health screening and resources"}
+            {"name": "National Institute of Mental Health", "contact": "https://www.nimh.nih.gov", "type": "website"},
+            {"name": "Depression and Bipolar Support Alliance", "contact": "https://www.dbsalliance.org", "type": "website"},
+            {"name": "Psychology Today Therapist Finder", "contact": "https://www.psychologytoday.com", "type": "website"}
         ],
         "stress": [
-            {"name": "American Psychological Association", "contact": "apa.org/topics/stress", "description": "Stress management resources"},
-            {"name": "Mindfulness-Based Stress Reduction", "contact": "palousemindfulness.com", "description": "Free MBSR course"},
-            {"name": "StressStop App", "contact": "stressstop.com", "description": "Quick stress relief techniques"}
+            {"name": "American Psychological Association Stress Resources", "contact": "https://www.apa.org/topics/stress", "type": "website"},
+            {"name": "Mindfulness-Based Stress Reduction", "contact": "Local MBSR programs", "type": "program"},
+            {"name": "Employee Assistance Program", "contact": "Check with your employer", "type": "program"}
         ],
         "general": [
-            {"name": "Psychology Today", "contact": "psychologytoday.com", "description": "Find therapists and mental health professionals"},
-            {"name": "BetterHelp", "contact": "betterhelp.com", "description": "Online counseling services"},
-            {"name": "NAMI Support Groups", "contact": "nami.org/Support-Education", "description": "Local support groups"}
+            {"name": "Mental Health America", "contact": "https://www.mhanational.org", "type": "website"},
+            {"name": "SAMHSA National Helpline", "contact": "1-800-662-HELP", "type": "phone"},
+            {"name": "Psychology Today Therapist Finder", "contact": "https://www.psychologytoday.com", "type": "website"}
         ]
     }
 
@@ -355,13 +316,28 @@ class SafetyChecker:
 
 
 class ResponseGenerator:
-    """Main response generation service"""
+    """Main response generation service with OpenAI integration"""
 
     def __init__(self):
         self.templates = ResponseTemplates()
         self.safety_checker = SafetyChecker()
 
-    def generate_response(self, user_input: str, emotion_result: EmotionResult, user_context: Dict[str, Any] = None) -> ResponseResult:
+        # Initialize OpenAI client if API key is available
+        self.openai_client = None
+        self.use_openai = False
+
+        if settings.OPENAI_API_KEY:
+            try:
+                self.openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+                self.use_openai = True
+                logger.info("OpenAI client initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize OpenAI client: {e}. Falling back to template-based responses.")
+                self.use_openai = False
+        else:
+            logger.info("No OpenAI API key found. Using template-based responses.")
+
+    async def generate_response(self, user_input: str, emotion_result: EmotionResult, user_context: Dict[str, Any] = None) -> ResponseResult:
         """
         Generate supportive response based on detected emotion
 
@@ -376,43 +352,85 @@ class ResponseGenerator:
         start_time = datetime.now()
 
         try:
-            # Safety check
+            # Safety check - this always takes precedence
             safety_check = self.safety_checker.check_safety(user_input, emotion_result)
 
-            # Handle crisis situations
+            # Handle crisis situations with immediate intervention
             if safety_check["safety_level"] == "crisis":
                 return self._generate_crisis_response(emotion_result, safety_check, start_time)
 
-            # Generate normal supportive response
-            emotion = emotion_result.primary_emotion
-            intensity = emotion_result.intensity
+            # Generate response using OpenAI or fallback to templates
+            if self.use_openai and self.openai_client:
+                try:
+                    response_result = await self._generate_openai_response(
+                        user_input, emotion_result, safety_check, user_context, start_time
+                    )
+                    return response_result
+                except Exception as e:
+                    logger.error(f"OpenAI response generation failed: {e}. Falling back to template response.")
+                    # Fall through to template-based response
 
-            # Build response components
-            validation = self._get_validation_phrase(emotion)
-            support = self._get_support_phrase(emotion)
-            coping_suggestions = self._get_coping_suggestions(emotion, intensity)
-            resources = self._get_resources(emotion, safety_check)
-            follow_up_questions = self._get_follow_up_questions(emotion)
+            # Template-based response generation (fallback)
+            return self._generate_template_response(user_input, emotion_result, safety_check, start_time)
 
-            # Combine into full response
-            response_parts = [validation, support]
+        except Exception as e:
+            logger.error(f"Response generation error: {e}")
+            raise AIServiceError(f"Failed to generate response: {str(e)}")
 
-            # Add professional help suggestion for high distress
-            if safety_check["high_distress"]:
-                response_parts.append(random.choice(self.templates.PROFESSIONAL_HELP_ENCOURAGEMENT["high_distress"]))
+    async def _generate_openai_response(self, user_input: str, emotion_result: EmotionResult,
+                                      safety_check: Dict[str, Any], user_context: Dict[str, Any],
+                                      start_time: datetime) -> ResponseResult:
+        """
+        Generate response using OpenAI's chat completion API
 
-            # Add coping suggestion
-            if coping_suggestions:
-                response_parts.append(f"Here's something that might help: {coping_suggestions[0]}")
+        Args:
+            user_input: User's input text
+            emotion_result: Detected emotion and analysis
+            safety_check: Safety assessment results
+            user_context: Additional user context
+            start_time: Generation start time
 
-            full_response = " ".join(response_parts)
+        Returns:
+            ResponseResult with OpenAI-generated response
+        """
+        try:
+            # Construct system prompt for mental health companion
+            system_prompt = self._build_system_prompt(emotion_result, safety_check)
+
+            # Construct user prompt with context
+            user_prompt = self._build_user_prompt(user_input, emotion_result, user_context)
+
+            # Call OpenAI API
+            response = await self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=300,  # Keep under 200 words typically
+                temperature=0.7,
+                timeout=10.0  # 10 second timeout
+            )
+
+            # Extract the response content
+            ai_message = response.choices[0].message.content.strip()
+
+            # Ensure response stays under 200 words
+            words = ai_message.split()
+            if len(words) > 200:
+                ai_message = ' '.join(words[:200]) + "..."
+
+            # Generate complementary components using templates
+            coping_suggestions = self._get_coping_suggestions(emotion_result.primary_emotion, emotion_result.intensity)
+            resources = self._get_resources(emotion_result.primary_emotion, safety_check)
+            follow_up_questions = self._get_follow_up_questions(emotion_result.primary_emotion)
 
             # Calculate processing time
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
 
             return ResponseResult(
-                message=full_response,
-                response_type="supportive",
+                message=ai_message,
+                response_type="ai_supportive",
                 coping_suggestions=coping_suggestions,
                 resources=resources,
                 follow_up_questions=follow_up_questions,
@@ -420,9 +438,120 @@ class ResponseGenerator:
                 generation_time_ms=processing_time
             )
 
+        except asyncio.TimeoutError:
+            logger.error("OpenAI API request timed out")
+            raise AIServiceError("AI service timeout - please try again")
+        except openai.APIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            raise AIServiceError(f"AI service error: {str(e)}")
         except Exception as e:
-            logger.error(f"Response generation error: {e}")
-            raise AIServiceError(f"Failed to generate response: {str(e)}")
+            logger.error(f"Unexpected error in OpenAI response generation: {e}")
+            raise AIServiceError(f"AI service error: {str(e)}")
+
+    def _build_system_prompt(self, emotion_result: EmotionResult, safety_check: Dict[str, Any]) -> str:
+        """Build system prompt for OpenAI based on emotion and safety context"""
+        base_prompt = """You are a compassionate AI mental health companion. Your role is to provide empathetic, supportive responses that validate emotions and offer gentle guidance.
+
+CORE PRINCIPLES:
+- Always be empathetic and supportive
+- Validate the user's emotions as normal and understandable
+- Offer gentle coping suggestions when appropriate
+- Never provide medical diagnosis or replace professional therapy
+- Encourage professional help for significant distress
+- Keep responses under 200 words
+- Use warm, understanding tone
+
+SAFETY GUIDELINES:
+- If someone expresses suicidal thoughts, prioritize crisis resources
+- For high distress, gently encourage professional support
+- Never minimize or dismiss serious mental health concerns
+
+RESPONSE STRUCTURE:
+1. Acknowledge and validate their feelings
+2. Provide supportive perspective
+3. Offer one practical suggestion if appropriate
+4. End with encouragement or gentle question"""
+
+        # Add emotion-specific guidance
+        emotion_guidance = {
+            "anxious": "Focus on grounding techniques and reassurance about managing worry.",
+            "stressed": "Emphasize breaking things down and self-care practices.",
+            "sad": "Validate the pain while offering hope and connection.",
+            "overwhelmed": "Help prioritize and suggest manageable steps.",
+            "angry": "Acknowledge the emotion's validity and suggest healthy expression.",
+        }
+
+        if emotion_result.primary_emotion in emotion_guidance:
+            base_prompt += f"\n\nSPECIFIC GUIDANCE: The user is feeling {emotion_result.primary_emotion}. {emotion_guidance[emotion_result.primary_emotion]}"
+
+        # Add safety context
+        if safety_check["needs_intervention"]:
+            base_prompt += "\n\nIMPORTANT: The user may be experiencing high distress. Be extra gentle and consider mentioning professional support resources."
+
+        return base_prompt
+
+    def _build_user_prompt(self, user_input: str, emotion_result: EmotionResult, user_context: Dict[str, Any]) -> str:
+        """Build user prompt with context for OpenAI"""
+        prompt = f"User's message: \"{user_input}\"\n\n"
+        prompt += f"Detected emotion: {emotion_result.primary_emotion} (intensity: {emotion_result.intensity})\n"
+        prompt += f"Sentiment score: {emotion_result.sentiment_score:.2f}\n"
+
+        if user_context:
+            prompt += f"Additional context: {user_context}\n"
+
+        prompt += "\nPlease provide a supportive, empathetic response that validates their feelings and offers gentle guidance."
+
+        return prompt
+
+    def _generate_template_response(self, user_input: str, emotion_result: EmotionResult,
+                                  safety_check: Dict[str, Any], start_time: datetime) -> ResponseResult:
+        """
+        Generate response using template-based system (fallback method)
+
+        Args:
+            user_input: User's input text
+            emotion_result: Detected emotion and analysis
+            safety_check: Safety assessment results
+            start_time: Generation start time
+
+        Returns:
+            ResponseResult with template-generated response
+        """
+        emotion = emotion_result.primary_emotion
+        intensity = emotion_result.intensity
+
+        # Build response components
+        validation = self._get_validation_phrase(emotion)
+        support = self._get_support_phrase(emotion)
+        coping_suggestions = self._get_coping_suggestions(emotion, intensity)
+        resources = self._get_resources(emotion, safety_check)
+        follow_up_questions = self._get_follow_up_questions(emotion)
+
+        # Combine into full response
+        response_parts = [validation, support]
+
+        # Add professional help suggestion for high distress
+        if safety_check["high_distress"]:
+            response_parts.append(random.choice(self.templates.PROFESSIONAL_HELP_ENCOURAGEMENT["high_distress"]))
+
+        # Add coping suggestion
+        if coping_suggestions:
+            response_parts.append(f"Here's something that might help: {coping_suggestions[0]}")
+
+        full_response = " ".join(response_parts)
+
+        # Calculate processing time
+        processing_time = (datetime.now() - start_time).total_seconds() * 1000
+
+        return ResponseResult(
+            message=full_response,
+            response_type="template_supportive",
+            coping_suggestions=coping_suggestions,
+            resources=resources,
+            follow_up_questions=follow_up_questions,
+            safety_intervention=safety_check["needs_intervention"],
+            generation_time_ms=processing_time
+        )
 
     def _generate_crisis_response(self, emotion_result: EmotionResult, safety_check: Dict[str, Any], start_time: datetime) -> ResponseResult:
         """Generate crisis intervention response"""
@@ -547,7 +676,3 @@ class ResponseGenerator:
         # - Personal triggers and patterns
 
         return base_response
-
-
-# Global response generator instance
-response_generator = ResponseGenerator()

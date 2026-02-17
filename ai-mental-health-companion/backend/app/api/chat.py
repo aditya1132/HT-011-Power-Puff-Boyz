@@ -9,7 +9,7 @@ import uuid
 from app.database.database import get_db
 from app.models.models import User, ChatHistory
 from app.ai.emotion_detection import emotion_service
-from app.ai.response_generator import response_generator
+from app.ai.response_generator import ResponseGenerator
 from app.ai.coping_tools import coping_service
 from app.core.exceptions import ChatSessionError, EmotionDetectionError, AIServiceError
 from app.core.logging import get_security_logger, get_audit_logger
@@ -209,7 +209,8 @@ async def send_message(
 
         # Generate supportive response
         try:
-            response_result = response_generator.generate_response(
+            response_generator = ResponseGenerator()
+            response_result = await response_generator.generate_response(
                 user_input=request.message,
                 emotion_result=emotion_result,
                 user_context=request.context

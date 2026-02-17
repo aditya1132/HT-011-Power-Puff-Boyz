@@ -14,8 +14,7 @@ from .response_generator import (
     ResponseResult,
     ResponseTemplates,
     SafetyChecker,
-    ResponseGenerator,
-    response_generator
+    ResponseGenerator
 )
 
 from .coping_tools import (
@@ -46,7 +45,6 @@ __all__ = [
     "ResponseTemplates",
     "SafetyChecker",
     "ResponseGenerator",
-    "response_generator",
 
     # Coping Tools
     "CopingTool",
@@ -136,11 +134,16 @@ def validate_ai_system():
             return False, "Emotion detection not working"
 
         # Test response generation
-        test_response = response_generator.generate_response(
-            "Hello", test_result
-        )
-        if not test_response.message:
-            return False, "Response generation not working"
+        import asyncio
+        generator = ResponseGenerator()
+        try:
+            test_response = asyncio.run(generator.generate_response(
+                "Hello", test_result
+            ))
+            if not test_response.message:
+                return False, "Response generation not working"
+        except Exception as e:
+            return False, f"Response generation test failed: {str(e)}"
 
         # Test coping tools
         tools = coping_service.get_all_tools()
