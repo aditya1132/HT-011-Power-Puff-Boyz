@@ -1,6 +1,4 @@
-# AI-Powered Mental Health Companion 🌱
-
-A **complete, production-ready** mental health support application featuring emotion detection, mood tracking, and personalized coping tools. Built for hackathons with real-world impact potential.
+# AI-Powered Mental Health Companion 
 
 ## 🎯 Project Overview
 
