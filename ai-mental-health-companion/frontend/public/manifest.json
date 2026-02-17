@@ -1,0 +1,129 @@
+{
+  "short_name": "Mental Health Companion",
+  "name": "AI-Powered Mental Health Companion",
+  "description": "A supportive, privacy-first web application for emotional well-being, mood tracking, and personalized coping tools.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "maskable-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "maskable-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0ea5e9",
+  "background_color": "#ffffff",
+  "categories": ["health", "medical", "wellness", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Daily Check-in",
+      "short_name": "Check-in",
+      "description": "Log your daily mood and feelings",
+      "url": "/mood",
+      "icons": [
+        {
+          "src": "shortcut-checkin.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Chat Companion",
+      "short_name": "Chat",
+      "description": "Talk with your AI mental health companion",
+      "url": "/chat",
+      "icons": [
+        {
+          "src": "shortcut-chat.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Coping Tools",
+      "short_name": "Tools",
+      "description": "Access breathing exercises and coping techniques",
+      "url": "/coping-tools",
+      "icons": [
+        {
+          "src": "shortcut-tools.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your mental health insights and trends",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "shortcut-dashboard.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile-1.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Chat interface with emotion detection"
+    },
+    {
+      "src": "screenshot-mobile-2.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mood tracking dashboard with trends"
+    },
+    {
+      "src": "screenshot-desktop-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Full dashboard with analytics and insights"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+mentalhealthcrisis",
+      "url": "/crisis-support?from=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
+}
