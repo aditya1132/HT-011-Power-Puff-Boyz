@@ -1,0 +1,37 @@
+# Minimal requirements for AI Mental Health Companion Demo
+# Essential packages only for quick startup
+
+# Core FastAPI
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.5
+
+# Database
+sqlalchemy>=2.0.0
+
+# Data validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# AI/NLP (minimal)
+textblob>=0.17.0
+vaderSentiment>=3.3.0
+
+# HTTP client
+requests>=2.30.0
+
+# Basic crypto for security
+cryptography>=40.0.0
+
+# Date handling
+python-dateutil>=2.8.0
+
+# Logging
+structlog>=23.0.0
+
+# Development
+click>=8.1.0
+typing-extensions>=4.7.0

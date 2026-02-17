@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mental Health Companion - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6B9DFF 0%, #7ED957 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .status {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #6B9DFF;
+            color: white;
+        }
+
+        .message.ai .message-avatar {
+            background: #7ED957;
+            color: white;
+        }
+
+        .message-content {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 18px;
+            max-width: 70%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .message.user .message-content {
+            background: #6B9DFF;
+            color: white;
+        }
+
+        .emotion-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .emotion-tag {
+            display: inline-block;
+            background: #2196f3;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+
+        .coping-suggestions {
+            margin-top: 10px;
+        }
+
+        .coping-tool {
+            background: #f1f8e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 5px 0;
+            font-size: 0.85em;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #6B9DFF;
+        }
+
+        .send-button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #6B9DFF 0%, #7ED957 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .demo-suggestions {
+            padding: 20px;
+            background: #fff3e0;
+            border-top: 1px solid #ffcc02;
+        }
+
+        .demo-suggestions h3 {
+            color: #ff8f00;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .suggestion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-btn {
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 15px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-btn:hover {
+            background: #ffcc02;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                min-height: 90vh;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .suggestion-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Mental Health Companion</h1>
+            <p>A supportive space for emotional well-being and mental health support</p>
+        </div>
+
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>Server: <strong id="server-status">Connected</strong></span>
+            </div>
+            <div class="status-item">
+                <span>AI Model: <strong>Rule-Based + Sentiment Analysis</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Safety: <strong>Active</strong></span>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message ai">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>Hello! I'm your AI Mental Health Companion. I'm here to provide emotional support, help you understand your feelings, and suggest coping strategies.</p>
+                        <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">How are you feeling today? Feel free to share what's on your mind.</p>
+                        <div style="margin-top: 10px; font-size: 0.8em; color: #666;">
+                            <strong>Remember:</strong> I'm a supportive tool, not a replacement for professional mental health care.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <p>🤖 AI is thinking...</p>
+            </div>
+        </div>
+
+        <div class="demo-suggestions">
+            <h3>💡 Try these example messages:</h3>
+            <div class="suggestion-buttons">
+                <button class="suggestion-btn" onclick="sendSuggestion('I\'m feeling really stressed about work deadlines')">Stress about work</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('I\'m excited about my upcoming vacation!')">Excitement</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('I feel sad and lonely today')">Sadness</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('I\'m grateful for all the support I\'ve received')">Gratitude</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('I feel anxious about my presentation tomorrow')">Anxiety</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('Everything feels overwhelming right now')">Overwhelm</button>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <form class="input-form" id="message-form">
+                <input
+                    type="text"
+                    class="message-input"
+                    id="message-input"
+                    placeholder="Share your thoughts and feelings..."
+                    maxlength="500"
+                />
+                <button type="submit" class="send-button" id="send-button">
+                    Send 💬
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let userId = 'demo_user_' + Math.random().toString(36).substr(2, 9);
+        let sessionId = 'demo_session_' + Date.now();
+
+        const chatMessages = document.getElementById('chat-messages');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const loading = document.getElementById('loading');
+
+        // Check server status on load
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('server-status').textContent = 'Connected ✅';
+                } else {
+                    throw new Error('Server not responding');
+                }
+            } catch (error) {
+                document.getElementById('server-status').textContent = 'Disconnected ❌';
+                console.error('Server status check failed:', error);
+            }
+        }
+
+        // Send message function
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+
+            // Clear input and show loading
+            messageInput.value = '';
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/chat/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Add AI response to chat
+                addAIMessage(data);
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('Sorry, I encountered an error. Please make sure the server is running and try again.', 'ai', true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Add message to chat
+        function addMessage(content, sender, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = sender === 'user' ? '👤' : '🤖';
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content ${isError ? 'error' : ''}">
+                    <p>${content}</p>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add AI message with emotion and coping info
+        function addAIMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai';
+
+            let copingSuggestionsHTML = '';
+            if (data.coping_suggestions && data.coping_suggestions.length > 0) {
+                copingSuggestionsHTML = `
+                    <div class="coping-suggestions">
+                        <strong>💡 Suggested coping strategies:</strong>
+                        ${data.coping_suggestions.map(tool => `
+                            <div class="coping-tool">
+                                <strong>${tool.name}</strong> (${tool.duration_minutes} min) - ${tool.description}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <p>${data.message}</p>
+                    <div class="emotion-info">
+                        <span class="emotion-tag">${data.emotion.primary_emotion}</span>
+                        <span>Confidence: ${(data.emotion.confidence * 100).toFixed(1)}%</span>
+                        <span style="margin-left: 10px;">Intensity: ${data.emotion.intensity}</span>
+                    </div>
+                    ${copingSuggestionsHTML}
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show/hide loading
+        function showLoading(show) {
+            loading.style.display = show ? 'block' : 'none';
+            sendButton.disabled = show;
+            messageInput.disabled = show;
+        }
+
+        // Send suggestion function
+        function sendSuggestion(message) {
+            messageInput.value = message;
+            sendMessage(message);
+        }
+
+        // Form submission
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+            }
+        });
+
+        // Auto-resize input and enter key handling
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            }
+        });
+
+        // Initialize
+        checkServerStatus();
+        messageInput.focus();
+
+        // Add some demo data for testing
+        setTimeout(() => {
+            console.log('Demo initialized!');
+            console.log('User ID:', userId);
+            console.log('Session ID:', sessionId);
+        }, 1000);
+    </script>
+</body>
+</html>
